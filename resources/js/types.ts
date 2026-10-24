@@ -1,0 +1,9 @@
+export type State = {enabled:boolean; deleted:boolean; position:number|null};
+export type Block = {id:string; type:'heading'|'paragraph'|'list'|'table'; text?:string; level?:number; items?:string[]; headers?:string[]; rows?:string[][]; state:State};
+export type Media = {id:string; type:'video'|'audio'|'image'|'animation'|'pronunciation'; term?:string;aliases?:string[];anchor_word?:string; description:string; anchor_block_id:string; placement:string; url:string; captions_url?:string; transcript_url?:string; state:State};
+export type Activity = {id:string; title:string; prompt?:string; kind?:string; options?:string[]; prompt_parts?:{part_id:string;text:string}[]; feedback?:string};
+export type Section = {id:string; title:string; order:number; state:State; criterion_ids:string[]; blocks:Block[]; media:Media[]; activities:Activity[]; alternatives:{id:string;title:string;text:string}[]};
+export type Question = {id:string;criterionId:string;domain:string;kind:'mc'|'short'|'multi'|'match'|'order';prompt:string;options?:string[];matchKeys?:string[];matchOptions?:string[];items?:string[];sectionIds:string[];maxMarks:number};
+export type Lesson = {id:number;manifest_id:string;version:string;title:string;overview?:{summary?:string;introduction?:string[];goals?:string[];practical_guidance?:string};sections:Section[];questions:Question[];written:{text:string[]};policies:{automatic:string;written:string};publication:{status:string;blockers:string[]};syllabus:{subject:string;form:number;edition:string};active_count:number;logo_url:string|null;review_flags:string[]};
+export type Progress = Record<string,{read:boolean;confidence:number|null;activities:string[]|null}>;
+export type Shared = {auth:{user:{id:number;name:string;email:string;role:string}|null};flash:{message:string|null};errors:Record<string,string>;[key:string]:unknown};

@@ -1,0 +1,23 @@
+import { type ReactNode, useEffect, useState } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { BookOpen01, UploadCloud02, LogOut01, ArrowRight, LayersThree01, CheckCircle, AlertCircle } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
+import { Badge } from '@/components/base/badges/badges';
+import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator';
+import {EmptyState} from '@/components/application/empty-state/empty-state';
+import {NavItemBase} from '@/components/application/app-navigation/base-components/nav-item';
+import type {Shared} from '@/types';
+export {Button, Badge};
+
+export function Shell({children,logo}:{children:ReactNode;logo?:string|null}) {
+    const {auth,flash,errors}=usePage<Shared>().props;
+    const [loading,setLoading]=useState(false);
+    useEffect(()=>{const a=router.on('start',()=>setLoading(true));const b=router.on('finish',()=>setLoading(false));return()=>{a();b();};},[]);
+    return <div className="studio"><aside className="sidebar"><Link href={auth.user?.role==='admin'?'/admin/lessons':'/lessons'} className="brand"><img src={logo||"/branding/nthanda-logo.png"} alt="Nthanda"/><span>Lesson Studio<small>NTHANDA FOUNDATION</small></span></Link><div className="workspace-label">LEARNING WORKSPACE</div><nav aria-label="Main navigation"><NavItemBase type="link" current href={auth.user?.role==='admin'?'/admin/lessons':'/lessons'} icon={BookOpen01}>Lesson library</NavItemBase>{auth.user?.role==='admin'&&<><NavItemBase type="link" href="/admin/import" icon={UploadCloud02}>Import package</NavItemBase><NavItemBase type="link" href="/lessons" icon={LayersThree01}>Learner preview</NavItemBase></>}</nav><div className="sidebar-bottom"><div className="preview-note"><span className="live-dot"/> Pilot workspace<p>Thoughtfully built for<br/>learning that lasts.</p></div><div className="account"><span className="avatar">{auth.user?.name[0]}</span><div><strong>{auth.user?.name}</strong><small>{auth.user?.role}</small></div><Button color="tertiary" size="sm" aria-label="Sign out" iconLeading={LogOut01} onClick={()=>router.post('/logout')}/></div></div></aside><div className="workspace"><header className="topbar"><span><span className="live-dot"/> Nthanda Lesson Studio</span><div className="actions"><Badge color="warning">Preview environment</Badge><Button color="tertiary" size="sm" aria-label="Sign out of studio" iconLeading={LogOut01} onClick={()=>router.post('/logout')}/></div></header>{loading&&<div className="loading-bar" role="status"><LoadingIndicator size="sm"/><span>Loading…</span></div>}{flash.message&&<div className="notification" role="status"><CheckCircle/>{flash.message}</div>}{Object.keys(errors).length>0&&<div className="notification error" role="alert"><AlertCircle/>{Object.values(errors).join(' ')}</div>}<main>{children}</main><footer>Nthanda Foundation <span>Made for curiosity. Built for understanding.</span></footer></div></div>;
+}
+export function PageHeading({eyebrow,title,description,actions}:{eyebrow?:string;title:string;description?:string;actions?:ReactNode}) {
+    return <div className="page-heading"><div>{eyebrow&&<p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description&&<p className="muted">{description}</p>}</div><div className="actions">{actions}</div></div>;
+}
+export function Empty({title,description,action}:{title:string;description:string;action?:ReactNode}) {return <div className="empty card"><EmptyState><EmptyState.Header><EmptyState.FeaturedIcon icon={BookOpen01} color="brand"/></EmptyState.Header><EmptyState.Content><EmptyState.Title>{title}</EmptyState.Title><EmptyState.Description>{description}</EmptyState.Description></EmptyState.Content><EmptyState.Footer>{action}</EmptyState.Footer></EmptyState></div>;}
+export function PreviewBanner({blockers}:{blockers?:string[]}) {return <div className="preview-banner"><AlertCircle/><div><strong>Learning preview · review pending</strong><p>{blockers?.join(' · ')||'This lesson is available for pilot preview. Educational and media approval is pending.'}</p></div></div>;}
+export function Go({href,children}:{href:string;children:ReactNode}) {return <Button href={href} color="secondary" iconTrailing={ArrowRight}>{children}</Button>;}

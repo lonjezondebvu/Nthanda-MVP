@@ -1,0 +1,8 @@
+import {useForm,Head} from '@inertiajs/react';
+import {BookOpen01,ArrowRight,ShieldTick} from '@untitledui/icons';
+import {Button} from '@/components/base/buttons/button';
+import {Input} from '@/components/base/input/input';
+export default function Login(){
+ const f=useForm({email:'',password:''});
+ return <><Head title="Sign in"/><div className="login-page"><div className="login-story"><div className="login-wordmark"><img src="/branding/nthanda-logo.png" alt="Nthanda"/></div><div><p className="eyebrow">NTHANDA LESSON STUDIO</p><h1>A little curiosity.<br/>A world of possibility.</h1><p>A space to bring learning to life.<br/>Import, shape and explore lessons that make a difference.</p><div className="story-tags"><span><BookOpen01/> Meaningful content</span><span><ShieldTick/> Thoughtful learning</span></div></div><small>THE NTHANDA FOUNDATION · MALAWI</small></div><main className="login-form"><span className="icon-tile"><BookOpen01/></span><h1>Welcome to Lesson Studio</h1><p className="muted">Sign in to your learning workspace.</p><form onSubmit={e=>{e.preventDefault();f.post('/login');}}><Input label="Email address" type="email" value={f.data.email} onChange={v=>f.setData('email',v)} isRequired autoComplete="username" placeholder="you@nthanda.org" isInvalid={!!f.errors.email} hint={f.errors.email}/><Input label="Password" type="password" value={f.data.password} onChange={v=>f.setData('password',v)} isRequired autoComplete="current-password" isInvalid={!!f.errors.password} hint={f.errors.password}/><Button type="submit" size="lg" isLoading={f.processing} iconTrailing={ArrowRight}>Sign in</Button></form><p className="small muted">Your administrator provides access to this pilot workspace.</p></main></div></>;
+}
