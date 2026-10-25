@@ -55,6 +55,53 @@ class LegacyPackageAdapter
             }
         }
 
+        if (is_file($root.'/studio-compatibility.json')) {
+            $metadata = $parser->json($root.'/studio-compatibility.json');
+            $parser->check(is_array($metadata['activities'] ?? null) && array_is_list($metadata['activities']) && is_array($metadata['overview'] ?? null) && is_array($metadata['additional_media'] ?? null) && array_is_list($metadata['additional_media']), 'Invalid exported curriculum metadata.');
+            $activityIds = [];
+            foreach ($metadata['activities'] as $activity) {
+                $parser->check(is_array($activity) && is_string($activity['id'] ?? null) && is_string($activity['title'] ?? null) && is_string($activity['feedback'] ?? null) && is_array($activity['section_ids'] ?? null) && ($activity['purpose'] ?? null) === 'formative' && ($activity['counts_for_mastery'] ?? true) === false, 'Invalid exported practice activity.');
+                $parser->check(preg_match('/^[A-Za-z0-9_.:-]{1,180}$/D', $activity['id']) === 1 && ! in_array($activity['id'], $activityIds, true), 'Duplicate or invalid exported practice ID.');
+                $activityIds[] = $activity['id'];
+                foreach ($activity['section_ids'] as $id) {
+                    $parser->check(in_array($id, array_column($manifest['sections'], 'id'), true), 'Unknown exported activity section.');
+                }
+                $parser->check(! isset($activity['prompt_parts']) || (is_array($activity['prompt_parts']) && array_is_list($activity['prompt_parts'])), 'Invalid exported activity prompt parts.');
+                foreach ($activity['prompt_parts'] ?? [] as $part) {
+                    $parser->check(is_string($part['part_id'] ?? null) && is_string($part['text'] ?? null), 'Invalid exported activity prompt.');
+                }
+                if (isset($activity['options'])) {
+                    $parser->check($parser->strings($activity['options']), 'Invalid exported activity options.');
+                }
+                $parser->check(! isset($activity['prompt']) || is_string($activity['prompt']), 'Invalid exported activity text.');
+            }
+            $mediaIds = array_merge(array_column($manifest['media'], 'id'), array_column($manifest['sections'], 'id'), ...array_column($manifest['sections'], 'block_ids'));
+            foreach ($metadata['additional_media'] as &$item) {
+                $parser->check(is_array($item), 'Exported media must be an object.');
+                $parser->check(! isset($item['references']), 'Exported compatibility media must use its single section and block anchor.');
+                $section = collect($manifest['sections'])->firstWhere('id', $item['section_id'] ?? null);
+                $parser->check($section !== null && in_array($item['anchor_block_id'] ?? null, $section['block_ids'], true), 'Unknown exported media anchor.');
+                $parser->check(is_string($item['id'] ?? null) && in_array($item['type'] ?? null, ['image', 'audio', 'video', 'animation', 'pronunciation'], true) && is_string($item['path'] ?? null) && in_array($item['placement'] ?? null, ['before', 'after', 'inline-after-word'], true), 'Invalid exported media.');
+                $parser->check(is_string($item['accessibility']['description'] ?? ''), 'Invalid exported media description.');
+                $parser->check(! isset($item['term']) || is_string($item['term']), 'Invalid exported pronunciation term.');
+                $parser->check(! isset($item['aliases']) || $parser->strings($item['aliases']), 'Invalid exported pronunciation aliases.');
+                $parser->check(preg_match('/^[A-Za-z0-9_.:-]{1,180}$/D', $item['id']) === 1 && ! in_array($item['id'], $mediaIds, true), 'Duplicate or invalid exported media ID.');
+                $mediaIds[] = $item['id'];
+                $item = array_intersect_key($item, array_flip(['id', 'type', 'path', 'section_id', 'anchor_block_id', 'placement', 'required', 'accessibility', 'term', 'aliases']));
+            }
+            unset($item);
+            $metadata['adapter'] = 'studio-export/v1';
+        }
+        $overview = $manifest['overview'] ?? $metadata['overview'];
+        $parser->check(is_array($overview), 'Curriculum overview must be an object.');
+        foreach (['summary', 'practical_guidance'] as $key) {
+            $parser->check(! isset($overview[$key]) || is_string($overview[$key]), 'Curriculum overview text must be a string.');
+        }
+        foreach (['introduction', 'goals'] as $key) {
+            $parser->check(! isset($overview[$key]) || $parser->strings($overview[$key]), 'Curriculum overview items must be strings.');
+        }
+        $metadata['overview'] = $overview;
+
         return $metadata;
     }
 }

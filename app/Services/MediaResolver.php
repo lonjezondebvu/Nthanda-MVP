@@ -6,16 +6,19 @@ use Illuminate\Validation\ValidationException;
 
 class MediaResolver
 {
-    public const MIMES = ['svg' => 'image/svg+xml', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4', 'mp4' => 'video/mp4', 'html' => 'text/html', 'vtt' => 'text/vtt', 'txt' => 'text/plain'];
+    public const MIMES = ['webp' => 'image/webp', 'webm' => 'video/webm', 'wav' => 'audio/wav', 'ogg' => 'audio/ogg', 'svg' => 'image/svg+xml', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4', 'mp4' => 'video/mp4', 'html' => 'text/html', 'vtt' => 'text/vtt', 'txt' => 'text/plain'];
 
-    public function resolve(string $source, string $derived, array $manifest, ManifestParser $parser): array
+    public function resolve(string $source, string $derived, array $manifest, ManifestParser $parser, ?callable $progress = null): array
     {
         $assets = [];
         $media = [];
         $warnings = [];
         $missing = [];
         $groups = [];
-        foreach ($manifest['media'] as $item) {
+        foreach ($manifest['media'] as $index => $item) {
+            if ($progress !== null) {
+                $progress(['stage' => 'media', 'percent' => 78 + (int) (15 * ($index + 1) / count($manifest['media'])), 'message' => $item['path'], 'current' => $index + 1, 'total' => count($manifest['media'])]);
+            }
             $path = 'dist/'.$parser->safePath($item['path']);
             if (preg_match('/^(.*\.mp4)\.part(\d+)$/', $path, $matches)) {
                 $groups[$matches[1]][(int) $matches[2]] = ['path' => $path, 'item' => $item];
@@ -30,6 +33,9 @@ class MediaResolver
                 continue;
             }
             $item['asset_key'] = $this->asset($assets, $source, $path);
+            if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'webm' && in_array($item['type'], ['audio', 'pronunciation'], true)) {
+                $assets[$item['asset_key']]['mime'] = 'audio/webm';
+            }
             foreach (['captions_path', 'transcript_path'] as $key) {
                 if (! empty($item['accessibility'][$key])) {
                     $ref = 'dist/'.$parser->safePath($item['accessibility'][$key]);
@@ -52,6 +58,9 @@ class MediaResolver
             $size = 0;
             try {
                 foreach ($parts as $part) {
+                    if ($progress !== null) {
+                        $progress(['stage' => 'media', 'percent' => 93, 'message' => 'Joining video segment: '.$part['path']]);
+                    }
                     $parser->check(is_file($source.'/'.$part['path']), 'Missing video segment.');
                     $in = fopen($source.'/'.$part['path'], 'rb');
                     $size += stream_copy_to_stream($in, $out);
@@ -59,6 +68,9 @@ class MediaResolver
                 }
             } finally {
                 fclose($out);
+            }
+            if ($progress !== null) {
+                $progress(['stage' => 'media', 'percent' => 94, 'message' => 'Validating reconstructed video: '.$base]);
             }
             $this->validateMp4($target, $size, $parser);
             $item = reset($parts)['item'];
@@ -120,7 +132,7 @@ class MediaResolver
             fclose($in);
         }
         foreach (['ftyp', 'moov', 'mdat'] as $box) {
-            $parser->check(in_array($box,$boxes),'Incomplete MP4 container.');
+            $parser->check(in_array($box, $boxes), 'Incomplete MP4 container.');
         }
     }
 }

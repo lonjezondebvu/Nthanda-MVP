@@ -12,8 +12,10 @@ class PackageImporter
 {
     public function __construct(private ManifestParser $parser, private LegacyPackageAdapter $adapter, private MediaResolver $resolver) {}
 
-    public function import(string $zipPath): array
+    public function import(string $zipPath, ?callable $progress = null): array
     {
+        $emit = $progress ?? static function (array $event): void {};
+        $emit(['stage' => 'validate', 'percent' => 0, 'message' => 'Checking archive size and existing versions']);
         $this->parser->check(is_file($zipPath) && filesize($zipPath) <= 128 * 1024 * 1024, 'ZIP must be at most 128 MiB.');
         $sha = hash_file('sha256', $zipPath);
         if ($existing = Lesson::where('sha256', $sha)->first()) {
@@ -26,7 +28,8 @@ class PackageImporter
         $disk->makeDirectory($directory.'/derived');
         try {
             copy($zipPath, $root.'/original.zip');
-            $this->extract($zipPath, $root.'/source');
+            $this->extract($zipPath, $root.'/source', $emit);
+            $emit(['stage' => 'manifest', 'percent' => 40, 'message' => 'Reading lesson-manifest.json and validating curriculum references']);
             $manifest = $this->parser->parse($root.'/source');
             $this->parser->check(! Lesson::where('manifest_id', $manifest['lesson_id'])->where('version', $manifest['lesson_version'])->exists(), 'This lesson version already exists with different bytes. Increment the package version before importing.');
             $source = $root.'/source';
@@ -34,7 +37,9 @@ class PackageImporter
             foreach ($manifest['sections'] as $s) {
                 $content = $this->parser->json($source.'/dist/'.$s['content_path']);
                 $sections[] = [...$content, 'order' => $s['order'], 'title' => $s['title'], 'criterion_ids' => $s['criterion_ids']];
+                $emit(['stage' => 'sections', 'percent' => 45 + (int) (25 * count($sections) / count($manifest['sections'])), 'message' => $s['title'], 'current' => count($sections), 'total' => count($manifest['sections'])]);
             }
+            $emit(['stage' => 'assessments', 'percent' => 72, 'message' => 'Validating assessment questions, marking rules and written work']);
             $marking = $this->parser->json($source.'/'.$this->parser->safePath($manifest['assessments']['protected_marking_reference']));
             $this->parser->json($source.'/'.$this->parser->safePath($manifest['assessments']['protected_source_rubric_reference']));
             $written = $this->parser->json($source.'/dist/'.$this->parser->safePath($manifest['assessments']['learner_written_path']));
@@ -43,7 +48,8 @@ class PackageImporter
             $compat = $this->adapter->adapt($source, $manifest, $this->parser);
             $resolvedManifest = $manifest;
             $resolvedManifest['media'] = [...$manifest['media'], ...$compat['additional_media']];
-            $media = $this->resolver->resolve($source, $root.'/derived', $resolvedManifest, $this->parser);
+            $emit(['stage' => 'media', 'percent' => 78, 'message' => 'Resolving images, recordings, captions and video segments']);
+            $media = $this->resolver->resolve($source, $root.'/derived', $resolvedManifest, $this->parser, $emit);
             $assets = $media['assets'];
             $logo = 'dist/media/branding/nthanda-logo.png';
             if (is_file($source.'/'.$logo)) {
@@ -56,7 +62,13 @@ class PackageImporter
                 'warnings' => array_merge($media['warnings'], ['Legacy JSON assignment parsed as data; formative activities extracted into derived metadata.', 'Reading, confidence and exploration are stored separately from assessed achievement.'], $manifest['publication']['blockers'] ?? []),
                 'missing_files' => $media['missing'], 'unsupported_features' => ['Production publication remains blocked.', 'Legacy workbook library and optional tutorial videos are outside this prototype.'],
                 'sha256' => $sha, 'adapter' => $compat['adapter'], 'publication' => $manifest['publication']];
-            $lesson = DB::transaction(fn () => Lesson::create(['manifest_id' => $manifest['lesson_id'], 'version' => $manifest['lesson_version'], 'title' => $manifest['title'] ?? $manifest['lesson_id'], 'sha256' => $sha, 'directory' => $directory, 'report' => $report]));
+            $emit(['stage' => 'save', 'percent' => 95, 'message' => 'Saving curriculum and import report']);
+            $lesson = DB::transaction(function () use ($manifest, $sha, $directory, $report, $source): Lesson {
+                $lesson = Lesson::create(['manifest_id' => $manifest['lesson_id'], 'version' => $manifest['lesson_version'], 'title' => $manifest['title'] ?? $manifest['lesson_id'], 'sha256' => $sha, 'directory' => $directory, 'report' => $report]);
+                app(CurriculumPackages::class)->restoreSettings($lesson, $source);
+
+                return $lesson;
+            });
 
             return ['lesson' => $lesson, 'duplicate' => false];
         } catch (\Throwable $e) {
@@ -65,11 +77,11 @@ class PackageImporter
         }
     }
 
-    private function extract(string $file, string $target): void
+    private function extract(string $file, string $target, callable $progress): void
     {
         $zip = new ZipArchive;
         $this->parser->check($zip->open($file) === true, 'Cannot open ZIP archive.');
-        $allowed = ['json', 'js', 'html', 'css', 'png', 'jpg', 'jpeg', 'svg', 'gif', 'mp3', 'm4a', 'mp4', 'vtt', 'srt', 'txt', 'md', 'pdf', 'docx', 'csv', 'py', 'pyc', 'bat'];
+        $allowed = ['json', 'js', 'html', 'css', 'png', 'jpg', 'jpeg', 'svg', 'gif', 'webp', 'webm', 'wav', 'ogg', 'mp3', 'm4a', 'mp4', 'vtt', 'srt', 'txt', 'md', 'pdf', 'docx', 'csv', 'py', 'pyc', 'bat'];
         try {
             $this->parser->check($zip->numFiles <= 1500, 'Archive has too many entries.');
             $total = 0;
@@ -94,7 +106,7 @@ class PackageImporter
                         mkdir($target.'/'.$path, 0775, true);
                     }
 
-continue;
+                    continue;
                 }
                 $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
                 $this->parser->check(in_array($ext, $allowed) || preg_match('/\.mp4\.part\d+$/D', $path), 'Unsupported archive file type: '.$ext);
@@ -111,6 +123,7 @@ continue;
                 fclose($out);
                 $this->parser->check($bytes === $s['size'], 'Archive member size mismatch.');
                 $this->parser->check(strtolower(hash_file('crc32b', $dest)) === sprintf('%08x', $s['crc']), 'Archive member checksum failed.');
+                $progress(['stage' => 'extract', 'percent' => (int) (40 * ($i + 1) / $zip->numFiles), 'message' => $name, 'current' => $i + 1, 'total' => $zip->numFiles]);
             }
         } finally {
             $zip->close();
@@ -142,7 +155,7 @@ continue;
                 $this->parser->check(in_array($id, $sections), 'Unknown question section.');
             }
         }
-        $this->parser->check(count($ids) > 0 && count($marking['rules'] ?? []) > 0, 'Assessment questions and rules are required.');
+        $this->parser->check((($manifest['publication']['status'] ?? null) === 'draft' && count($ids) === 0 && count($marking['rules'] ?? []) === 0) || (count($ids) > 0 && count($marking['rules'] ?? []) > 0), 'Assessment questions and rules are required.');
         foreach ($marking['rules'] as $rule) {
             $max = 0;
             foreach ($rule['required_question_ids'] as $id) {
@@ -150,10 +163,10 @@ continue;
                 $this->parser->check($ids[$id]['criterionId'] === $rule['criterion_id'], 'Assessment criterion mismatch.');
                 $max += $ids[$id]['maxMarks'];
             }
-            $this->parser->check($max === $rule['max_marks'] && $rule['minimum_overall_ratio'] > 0 && $rule['minimum_overall_ratio'] <= 1,'Invalid marking threshold.');
+            $this->parser->check($max === $rule['max_marks'] && $rule['minimum_overall_ratio'] > 0 && $rule['minimum_overall_ratio'] <= 1, 'Invalid marking threshold.');
         }
         foreach ($manifest['assessment_links'] as $link) {
-            $this->parser->check(isset($ids[$link['assessment_id']]),'Unknown assessment link.');
+            $this->parser->check(isset($ids[$link['assessment_id']]), 'Unknown assessment link.');
         }
     }
 }

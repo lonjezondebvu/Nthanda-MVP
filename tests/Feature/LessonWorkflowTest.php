@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Services\AssessmentMarker;
+use App\Services\CurriculumPackages;
 use App\Services\LessonAssembler;
 use App\Services\PackageImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,6 +34,20 @@ class LessonWorkflowTest extends TestCase
         Storage::fake('local');
 
         return app(PackageImporter::class)->import($this->pilotPath())['lesson'];
+    }
+
+    public function test_exported_pilot_version_keeps_its_practice_overview_and_media(): void
+    {
+        $lesson = $this->pilot();
+        $assembler = app(LessonAssembler::class);
+        $original = $assembler->assemble($lesson);
+        $updated = app(CurriculumPackages::class)->createVersion($lesson, ['title' => 'Updated pilot', 'version' => '2.2.0-test', 'sections' => $assembler->source($lesson)['sections']]);
+
+        $data = $assembler->assemble($updated);
+        $this->assertSame($original['overview'], $data['overview']);
+        $this->assertSame($original['sections'][0]['activities'], $data['sections'][0]['activities']);
+        $this->assertCount(count($original['sections'][1]['media']), $data['sections'][1]['media']);
+        $this->assertCount(count($original['questions']), $data['questions']);
     }
 
     public function test_administrator_can_sign_in_upload_and_manage_a_package(): void

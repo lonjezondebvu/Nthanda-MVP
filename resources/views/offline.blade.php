@@ -1,0 +1,2 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="offline-build" content="{{ $buildVersion }}"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#216851"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/branding/nthanda-logo.png"><title>Nthanda · Offline workspace</title>@viteReactRefresh @vite('resources/js/offline.tsx')</head><body><div id="offline-root"></div><noscript>Enable JavaScript to open downloaded lessons and local drafts.</noscript></body></html>
