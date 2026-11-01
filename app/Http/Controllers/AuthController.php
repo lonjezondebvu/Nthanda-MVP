@@ -26,10 +26,18 @@ class AuthController extends Controller
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'These details do not match an account.']);
         }
+        if ($request->user()->deactivated_at !== null) {
+            Auth::logout();
+            throw ValidationException::withMessages(['email' => 'This account has been deactivated. Contact your administrator.']);
+        }
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        return redirect()->intended($request->user()->role === 'admin' ? '/admin/lessons' : '/lessons');
+        return redirect()->intended(match ($request->user()->role) {
+            'admin' => '/admin/lessons',
+            'teacher' => '/teach',
+            default => '/today',
+        });
     }
 
     public function destroy(Request $request)

@@ -1,10 +1,23 @@
 <?php
 
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CatalogueController;
+use App\Http\Controllers\ClassDeskController;
+use App\Http\Controllers\ClassReportController;
 use App\Http\Controllers\CurriculumController;
+use App\Http\Controllers\GlossaryController;
+use App\Http\Controllers\LearningDashboardController;
 use App\Http\Controllers\LessonController;
+use App\Http\Controllers\LessonPublicationController;
 use App\Http\Controllers\OfflineController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PwaController;
+use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect('/lessons'));
@@ -20,11 +33,38 @@ Route::middleware('auth')->prefix('offline-api')->group(function () {
     Route::post('/state', [OfflineController::class, 'state'])->middleware('throttle:60,1');
 });
 Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store']);
+    Route::get('/register', [RegistrationController::class, 'create'])->name('register');
+    Route::post('/register', [RegistrationController::class, 'store'])->middleware('throttle:10,1');
 });
 Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth');
+Route::middleware('auth')->group(function () {
+    Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
+    Route::post('/portfolio', [PortfolioController::class, 'store'])->middleware('throttle:10,1')->name('portfolio.store');
+    Route::patch('/portfolio/{portfolioEntry}/review', [PortfolioController::class, 'review'])->middleware('throttle:60,1')->name('portfolio.review');
+    Route::get('/portfolio/{portfolioEntry}/attachment', [PortfolioController::class, 'attachment'])->name('portfolio.attachment');
+    Route::get('/glossary', [GlossaryController::class, 'index'])->name('glossary.index');
+    Route::post('/lessons/{lesson}/glossary', [GlossaryController::class, 'store'])->middleware('throttle:30,1')->name('glossary.store');
+    Route::patch('/glossary/{glossaryTerm}', [GlossaryController::class, 'update'])->middleware('throttle:30,1')->name('glossary.update');
+    Route::get('/today', LearningDashboardController::class)->name('today');
+    Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::post('/teach/classes/{schoolClass}/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::patch('/teach/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
+    Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::patch('/account', [AccountController::class, 'update'])->name('account.update');
+    Route::get('/teach', [ClassDeskController::class, 'index'])->name('teach.index');
+    Route::get('/teach/classes/{schoolClass}', [ClassDeskController::class, 'show'])->name('teach.show');
+    Route::get('/teach/classes/{schoolClass}/report', ClassReportController::class)->middleware('throttle:10,1')->name('class.report');
+    Route::patch('/teach/attempts/{attempt}', [ClassDeskController::class, 'mark'])->name('teach.mark');
+});
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/lessons/{lesson}/publication', [LessonPublicationController::class, 'show'])->name('publication.show');
+    Route::post('/lessons/{lesson}/publication', [LessonPublicationController::class, 'store'])->middleware('throttle:20,1')->name('publication.store');
     Route::post('/workspace', [CurriculumController::class, 'workspace'])->name('workspace.switch');
     Route::post('/import-stream', [CurriculumController::class, 'importStream'])->middleware('throttle:10,1')->name('curriculum.import');
     Route::get('/lessons/{lesson}/download', [CurriculumController::class, 'download'])->name('curriculum.download');
@@ -33,6 +73,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/lessons', [LessonController::class, 'index']);
     Route::get('/import', [LessonController::class, 'importPage']);
     Route::post('/import', [LessonController::class, 'import'])->middleware('throttle:10,1');
+    Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+    Route::patch('/students/{user}', [StudentController::class, 'update'])->name('students.update');
+    Route::get('/teachers', [TeacherController::class, 'index'])->name('teachers.index');
+    Route::post('/teachers', [TeacherController::class, 'store'])->name('teachers.store');
+    Route::patch('/teachers/{user}', [TeacherController::class, 'update'])->name('teachers.update');
+    Route::post('/classes', [CatalogueController::class, 'storeClass'])->name('classes.store');
+    Route::patch('/classes/{schoolClass}', [CatalogueController::class, 'updateClass'])->name('classes.update');
+    Route::delete('/classes/{schoolClass}', [CatalogueController::class, 'destroyClass'])->name('classes.destroy');
+    Route::post('/classes/{schoolClass}/subjects', [CatalogueController::class, 'storeSubject'])->name('subjects.store');
+    Route::patch('/subjects/{subject}', [CatalogueController::class, 'updateSubject'])->name('subjects.update');
+    Route::delete('/subjects/{subject}', [CatalogueController::class, 'destroySubject'])->name('subjects.destroy');
+    Route::post('/subjects/{subject}/units', [CatalogueController::class, 'storeUnit'])->name('units.store');
+    Route::patch('/units/{unit}', [CatalogueController::class, 'updateUnit'])->name('units.update');
+    Route::delete('/units/{unit}', [CatalogueController::class, 'destroyUnit'])->name('units.destroy');
+    Route::patch('/lessons/{lesson}/placement', [LessonController::class, 'place'])->name('lessons.place');
+    Route::delete('/lessons/{lesson}', [LessonController::class, 'destroyPackage'])->name('lessons.destroy');
     Route::get('/lessons/{lesson}', [LessonController::class, 'manage']);
     Route::patch('/lessons/{lesson}/settings', [LessonController::class, 'settings']);
     Route::post('/lessons/{lesson}/order', [LessonController::class, 'order']);

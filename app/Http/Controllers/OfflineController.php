@@ -47,18 +47,22 @@ class OfflineController extends Controller
 
     public function library(Request $request): JsonResponse
     {
-        $lessons = Lesson::latest('id')->get()->map(function (Lesson $lesson): array {
+        $lessons = Lesson::query()->visibleTo($request->user())->latest('id')->get()->map(function (Lesson $lesson): array {
             $data = $this->assembler->assemble($lesson);
             $textBytes = strlen(json_encode($data, JSON_THROW_ON_ERROR));
             $allBytes = $textBytes;
+            $audioBytes = $textBytes;
             foreach ($data['assets'] as $asset) {
                 $allBytes += $asset['bytes'];
+                if (! preg_match('/^video\//', $asset['mime'])) {
+                    $audioBytes += $asset['bytes'];
+                }
                 if (! preg_match('/^(audio|video)\//', $asset['mime'])) {
                     $textBytes += $asset['bytes'];
                 }
             }
 
-            return [...$lesson->only('id', 'title', 'version', 'manifest_id'), 'bytes' => $allBytes, 'text_bytes' => $textBytes];
+            return [...$lesson->only('id', 'title', 'version', 'manifest_id'), 'bytes' => $allBytes, 'text_bytes' => $textBytes, 'audio_bytes' => $audioBytes];
         });
 
         return $this->json(['lessons' => $lessons]);
@@ -66,6 +70,7 @@ class OfflineController extends Controller
 
     public function lesson(Request $request, Lesson $lesson): JsonResponse
     {
+        abort_unless($lesson->visibleTo($request->user()), 403);
         $data = $this->assembler->assemble($lesson, $this->canEdit($request));
         $files = [];
         foreach ($this->assembler->assemble($lesson)['assets'] as $key => $asset) {
@@ -183,6 +188,7 @@ class OfflineController extends Controller
                     continue;
                 }
                 $lesson = Lesson::findOrFail($event['lesson_id']);
+                abort_unless($lesson->visibleTo($request->user()), 403);
                 abort_unless(hash_equals($lesson->sha256, $event['base_sha']), 409, 'The event does not match the downloaded lesson version.');
                 $value = $event['value'];
                 if (in_array($event['type'], ['read', 'confidence', 'activity'], true)) {

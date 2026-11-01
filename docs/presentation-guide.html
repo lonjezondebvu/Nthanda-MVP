@@ -1,0 +1,127 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nthanda — Presentation guide</title><style>body{font:16px/1.7 system-ui,sans-serif;color:#253c58;background:#f1f4f8;margin:0}main{max-width:900px;margin:40px auto;padding:56px 64px;background:white;border-radius:16px}h1{font-size:38px;color:#102c49;margin:0}h2{font-size:25px;color:#234d7b;margin-top:40px;border-bottom:2px solid #e9c96b;padding-bottom:8px}h3{font-size:19px;margin-top:26px}li{margin:7px 0}code{background:#edf2f7;padding:2px 5px;border-radius:4px}p{margin:14px 0}@media(max-width:640px){main{margin:0;padding:28px 22px;border-radius:0}h1{font-size:30px}}@media print{body{background:white;font-size:11pt}main{margin:0;padding:0;max-width:none}h1{font-size:26pt}h2{font-size:17pt}h3{font-size:13pt}h1,h2,h3{break-after:avoid}li{break-inside:avoid}@page{size:A4;margin:18mm}}</style></head><body><main><h1>Nthanda Lesson Studio</h1>
+<h2>Current features and step-by-step demonstration</h2>
+<p>Prepared 25 October 2026 · Pilot preview</p>
+<h2>1. Introduce the platform</h2>
+<p>Nthanda Lesson Studio brings lesson content, media, practice activities and assessments into one workspace. Administrators can import and organise curricula, while learners can read lessons, record progress and submit responses. The offline workspace lets users download lessons, create teaching drafts and choose what to synchronise when connectivity returns.</p>
+<p><strong>Suggested introduction:</strong> “Nthanda supports teaching and learning both online and offline. Today I will show how a lesson is imported, organised, explored and saved for use without a connection.”</p>
+<h2>2. What is currently available?</h2>
+<ul>
+<li><strong>Account access:</strong> sign-in, password visibility control, administrator and learner access, and logout.</li>
+<li><strong>Consistent workspace:</strong> Nthanda branding, Poppins typography, responsive layouts, a collapsible sidebar and shared navigation across online and offline workspaces.</li>
+<li><strong>Lesson library:</strong> browse imported lesson versions and open management or learner views. Administrators can start an empty trial workspace.</li>
+<li><strong>Curriculum import:</strong> upload a supported ZIP, see import progress and review content counts, missing files and warnings.</li>
+<li><strong>Lesson management:</strong> enable or disable sections, content blocks and media; reorder sections; remove and restore sections.</li>
+<li><strong>Editing and versions:</strong> edit teaching text and section order, save as a new curriculum version and download a curriculum ZIP.</li>
+<li><strong>Learner experience:</strong> lesson overview, section navigation, text, lists, tables, images and supported audio, video and animations where supplied by the package.</li>
+<li><strong>Progress and assessment:</strong> reading status, confidence, practice activities, automatically marked supported questions and saved written submissions.</li>
+<li><strong>Offline workspace:</strong> verified downloads, local teaching drafts, file imports, media attachments, backups and explicit sync review.</li>
+</ul>
+<p>Media and activities depend on the lesson package. The platform does not automatically generate lesson content or media.</p>
+<h2>3. Prepare the demonstration</h2>
+<ol>
+<li>Start the application and open <code>http://127.0.0.1:8000/login</code> on the presentation machine.</li>
+<li>Have an administrator account and a separate learner account ready. Keep passwords out of presentation slides.</li>
+<li>Prepare a compatible curriculum ZIP or use a lesson already in the library. A random ZIP or PDF is not a supported curriculum package.</li>
+<li>Before demonstrating offline access, open <strong>Offline workspace</strong> while connected and let preparation finish. Use HTTPS on a hosted site, or localhost for a local demonstration.</li>
+<li>Download the chosen lesson and its required media before disconnecting. Keep a backup of any local draft you intend to use.</li>
+</ol>
+<p><strong>If there is no curriculum package:</strong> demonstrate <strong>New local teacher workspace → Create lesson offline</strong> instead. Explain that this shows local authoring; imported assessments require suitable lesson content.</p>
+<h2>4. Demonstrate the administrator workflow</h2>
+<h3>Step 1 — Sign in and show the library</h3>
+<ol>
+<li>Sign in as an administrator.</li>
+<li>Open <strong>Lesson library</strong>.</li>
+<li>Point out lesson titles, version numbers and active section counts.</li>
+<li>Use the appbar menu button to show the collapsible sidebar.</li>
+</ol>
+<p><strong>Explain:</strong> “Each imported version has its own content, settings and learning records.”</p>
+<h3>Step 2 — Import a curriculum</h3>
+<ol>
+<li>Choose <strong>Import curriculum ZIP</strong> or <strong>Import package</strong>.</li>
+<li>Select the supported ZIP and click <strong>Validate and import</strong>.</li>
+<li>Show the upload and import progress.</li>
+<li>Select <strong>Open imported curriculum</strong> when it completes.</li>
+<li>Review section, content, media and assessment counts, plus warnings and missing files.</li>
+</ol>
+<p>The upload limit is 128 MiB. An identical ZIP opens the existing import. A changed package using the same lesson identity must have a new version number.</p>
+<h3>Step 3 — Organise a lesson</h3>
+<ol>
+<li>Open <strong>Manage lesson</strong> from the library.</li>
+<li>Expand a section to inspect its content and media.</li>
+<li>Disable one section or content item, then open <strong>Preview lesson</strong> to show the effect.</li>
+<li>Re-enable it and demonstrate moving a section up or down.</li>
+<li>Explain that removed sections can be restored and the original imported package is preserved.</li>
+</ol>
+<p><strong>Explain:</strong> “Teachers can adjust the learning journey without deleting the original source content.”</p>
+<h3>Step 4 — Edit and save a version</h3>
+<ol>
+<li>Select <strong>Edit curriculum</strong>.</li>
+<li>Change a title, paragraph or another supported teaching block.</li>
+<li>Enter a unique new version number.</li>
+<li>Select <strong>Save as new version</strong>.</li>
+<li>Show that the earlier version remains available. Use <strong>Download ZIP</strong> when a portable package is needed.</li>
+</ol>
+<p>Learner records do not automatically migrate to a new version. The online editor focuses on teaching content; it is not a complete assessment-authoring tool.</p>
+<h2>5. Demonstrate the learner workflow</h2>
+<ol>
+<li>Log out and sign in as a learner, or use the administrator’s <strong>Preview lesson</strong> for a shorter walkthrough.</li>
+<li>Open a lesson and show its overview and section list.</li>
+<li>Read a section and open an available image, audio or video item.</li>
+<li>Explore a practice activity if the package includes one.</li>
+<li>Mark the section as read and record a confidence level.</li>
+<li>Open assessments and submit a supported automatic assessment.</li>
+<li>Show the result and explain that a written response is saved as pending review.</li>
+</ol>
+<p><strong>Explain:</strong> “Reading progress and confidence are separate from assessed achievement. Practice activities do not award assessment marks.”</p>
+<p>Supported automatic question types include multiple choice, multi-select, short answers, matching and ordering. Written responses are stored, but a teacher marking interface is not currently available. Administrator previews use that administrator’s records; use a separate learner account to demonstrate separate learner history.</p>
+<h2>6. Demonstrate offline learning and creation</h2>
+<h3>Step 1 — Save a lesson for offline use</h3>
+<ol>
+<li>Open <strong>Offline workspace</strong> and select the correct <strong>Device workspace</strong>.</li>
+<li>Use <strong>Connect account</strong> if needed.</li>
+<li>Under <strong>Download from your library</strong>, choose whether to include audio and video.</li>
+<li>Click <strong>Download for offline use</strong> and wait for verification to finish.</li>
+<li>Disconnect from the network and open the lesson from <strong>Available on this device</strong>.</li>
+<li>Read content and record progress. Assessment and written responses can be queued locally.</li>
+</ol>
+<p>Offline assessment responses remain unmarked until submitted to the server after reconnection. Only downloaded media is available offline.</p>
+<h3>Step 2 — Create a local teaching draft</h3>
+<ol>
+<li>Select <strong>New local teacher workspace</strong>.</li>
+<li>Choose <strong>Create lesson offline</strong>.</li>
+<li>Enter lesson details, add sections and supported content blocks, and attach media if needed.</li>
+<li>Check the <strong>Saved on this device</strong> message and use <strong>Read</strong> to preview the draft.</li>
+</ol>
+<p>Alternatively, use <strong>Import ZIP / restore backup</strong>, <strong>Select package folder</strong>, or <strong>Build from files</strong>. Building from files supports text, Markdown and media. PDF and Word documents need conversion first.</p>
+<h3>Step 3 — Back up and synchronise</h3>
+<ol>
+<li>Use <strong>Export offline backup</strong> to download a portable backup of the draft and device state. <strong>Export state file</strong> is a smaller state export, not a replacement for a full media backup.</li>
+<li>Reconnect and sign in to the appropriate account.</li>
+<li>For a local teacher workspace, choose <strong>Copy local drafts to signed-in account</strong> before syncing. The original local drafts remain available.</li>
+<li>Open the draft and select <strong>Review teaching sync</strong>.</li>
+<li>Review changes, resolve any conflicts, enter a new version and select <strong>Sync reviewed lesson</strong>. A separate-copy option is also available.</li>
+<li>To submit learner progress or responses, choose <strong>Review saved work</strong>, select the entries and click <strong>Submit selected work</strong>.</li>
+</ol>
+<p><strong>Explain:</strong> “Sync is deliberate. Teaching changes and learner work are reviewed separately; reconnecting does not automatically publish local edits.”</p>
+<p>The sync review sends draft information to the server for comparison, but saving the new lesson version happens only when the reviewed sync is confirmed.</p>
+<h2>7. Current boundaries to explain honestly</h2>
+<ul>
+<li>This is a <strong>pilot preview</strong>, not a production publication or approval system.</li>
+<li>Self-registration and password-reset screens are not implemented. Account assistance is handled by an administrator.</li>
+<li>Written responses can be submitted, but teacher grading and review screens are not yet implemented.</li>
+<li>Advanced analytics, certificates and automatic progress migration between curriculum versions are not part of the current workflow.</li>
+<li>Offline storage belongs to the current device and browser. Clearing browser data can remove local work; export backups. A persistent-storage request may be declined by the browser.</li>
+<li>Offline use must be prepared while connected. App installation depends on browser support. Online logout does not erase downloaded lessons or drafts.</li>
+<li>Content quality, media playback and accessibility need review with the actual package and presentation device. Do not present sample-package counts as guaranteed content in every installation.</li>
+</ul>
+<h2>8. Suggested 10-minute presentation</h2>
+<ol>
+<li><strong>1 minute:</strong> introduce the purpose and show sign-in and navigation.</li>
+<li><strong>2 minutes:</strong> show a prepared import report and demonstrate one reversible lesson change.</li>
+<li><strong>2 minutes:</strong> walk through a lesson, progress and an assessment.</li>
+<li><strong>3 minutes:</strong> open a downloaded lesson offline, show a local draft and explain backup and sync review.</li>
+<li><strong>2 minutes:</strong> explain the pilot boundaries and invite feedback.</li>
+</ol>
+<p><strong>Suggested closing:</strong> “The current pilot demonstrates the core journey: import, organise, learn, work offline and synchronise reviewed changes. The next stage is to validate this workflow with real users and prioritise the remaining teaching and production requirements.”</p>
+<h2>About this guide</h2>
+<p>This guide describes the current routes, screens and implementation reviewed on 25 October 2026. It is a presentation walkthrough, not a claim that every workflow or media package was retested for this document. Older repository notes describe an earlier scope; in particular, offline workflows and curriculum editing are now implemented.</p></main></body></html>

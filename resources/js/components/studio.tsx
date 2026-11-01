@@ -1,19 +1,20 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
-import { BookOpen01, UploadCloud02, LogOut01, ArrowRight, LayersThree01, CheckCircle, AlertCircle } from '@untitledui/icons';
+import { router, usePage } from '@inertiajs/react';
+import { BookOpen01, ArrowRight, CheckCircle, AlertCircle } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { Badge } from '@/components/base/badges/badges';
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator';
 import {EmptyState} from '@/components/application/empty-state/empty-state';
-import {NavItemBase} from '@/components/application/app-navigation/base-components/nav-item';
+import {WorkspaceShell} from '@/components/workspace-shell';
 import type {Shared} from '@/types';
 export {Button, Badge};
 
 export function Shell({children,logo}:{children:ReactNode;logo?:string|null}) {
     const {auth,flash,errors,workspace}=usePage<Shared>().props;
     const [loading,setLoading]=useState(false);
+    const {url}=usePage<Shared>();
     useEffect(()=>{const a=router.on('start',()=>setLoading(true));const b=router.on('finish',()=>setLoading(false));return()=>{a();b();};},[]);
-    return <div className="studio"><aside className="sidebar"><Link href={auth.user?.role==='admin'?'/admin/lessons':'/lessons'} className="brand"><img src={logo||"/branding/nthanda-logo.png"} alt="Nthanda"/><span>Lesson Studio<small>NTHANDA FOUNDATION</small></span></Link><div className="workspace-label">LEARNING WORKSPACE</div><nav aria-label="Main navigation"><NavItemBase type="link" href="/offline" icon={LayersThree01}>Offline workspace</NavItemBase><NavItemBase type="link" current href={auth.user?.role==='admin'?'/admin/lessons':'/lessons'} icon={BookOpen01}>Lesson library</NavItemBase>{auth.user?.role==='admin'&&<><NavItemBase type="link" href="/admin/import" icon={UploadCloud02}>Import package</NavItemBase><NavItemBase type="link" href="/lessons" icon={LayersThree01}>Learner preview</NavItemBase></>}</nav><div className="sidebar-bottom"><div className="preview-note"><span className="live-dot"/> Pilot workspace<p>Thoughtfully built for<br/>learning that lasts.</p></div><div className="account"><span className="avatar">{auth.user?.name[0]}</span><div><strong>{auth.user?.name}</strong><small>{auth.user?.role}</small></div><Button color="tertiary" size="sm" aria-label="Sign out" iconLeading={LogOut01} onClick={()=>router.post('/logout')}/></div></div></aside><div className="workspace"><header className="topbar"><span><span className="live-dot"/> Nthanda Lesson Studio</span><div className="actions"><Badge color="warning">Preview environment</Badge><Button color="tertiary" size="sm" aria-label="Sign out of studio" iconLeading={LogOut01} onClick={()=>router.post('/logout')}/></div></header>{loading&&<div className="loading-bar" role="status"><LoadingIndicator size="sm"/><span>Loading…</span></div>}{flash.message&&<div className="notification" role="status"><CheckCircle/>{flash.message}</div>}{Object.keys(errors).length>0&&<div className="notification error" role="alert"><AlertCircle/>{Object.values(errors).join(' ')}</div>}<main>{workspace?.is_trial&&<div className="trial-banner"><div><strong>Trial workspace</strong><p>Imports and edits here are separate from your main library.</p></div>{auth.user?.role==='admin'&&<Button color="secondary" onClick={()=>router.post('/admin/workspace',{mode:'main'})}>Return to main library</Button>}</div>}{children}</main><footer>Nthanda Foundation <span>Made for curiosity. Built for understanding.</span></footer></div></div>;
+    return <WorkspaceShell logo={logo} user={auth.user} path={url.split('?')[0]} onLogout={()=>router.post('/logout')} notices={<>{loading&&<div className="loading-bar" role="status"><LoadingIndicator size="sm"/><span>Loading…</span></div>}{flash.message&&<div className="notification" role="status"><CheckCircle/>{flash.message}</div>}{Object.keys(errors).length>0&&<div className="notification error" role="alert"><AlertCircle/>{Object.values(errors).join(' ')}</div>}</>}>{workspace?.is_trial&&<div className="trial-banner"><div><strong>Trial workspace</strong><p>Imports and edits here are separate from your main library.</p></div>{auth.user?.role==='admin'&&<Button color="secondary" onClick={()=>router.post('/admin/workspace',{mode:'main'})}>Return to main library</Button>}</div>}{children}</WorkspaceShell>;
 }
 export function PageHeading({eyebrow,title,description,actions}:{eyebrow?:string;title:string;description?:string;actions?:ReactNode}) {
     return <div className="page-heading"><div>{eyebrow&&<p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description&&<p className="muted">{description}</p>}</div><div className="actions">{actions}</div></div>;

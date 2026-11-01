@@ -1,0 +1,40 @@
+import {useState, type FormEvent} from 'react';
+import {Head, Link, router, useForm} from '@inertiajs/react';
+import {BookOpen01, Plus, SearchLg} from '@untitledui/icons';
+import {Shell, PageHeading, Button, Badge, Empty} from '@/components/studio';
+import '../../css/glossary.css';
+
+type Term = {id:number;lesson_id:number;lesson_title:string;term:string;explanation_en:string;explanation_ny:string|null;pronunciation_hint:string|null;reviewed:boolean;reviewed_at:string|null};
+type LessonOption = {id:number;title:string};
+type Props = {canManage:boolean;lessons:LessonOption[];filters:{search:string;lesson_id:number|null};terms:{data:Term[];total:number;current_page:number;last_page:number;prev_page_url:string|null;next_page_url:string|null}};
+
+function TermEditor({term,lessons,initialLesson,onClose}:{term:Term|null;lessons:LessonOption[];initialLesson:number|null;onClose:()=>void}) {
+    const form = useForm({lesson_id:String(term?.lesson_id ?? initialLesson ?? lessons[0]?.id ?? ''),term:term?.term ?? '',explanation_en:term?.explanation_en ?? '',explanation_ny:term?.explanation_ny ?? '',pronunciation_hint:term?.pronunciation_hint ?? '',reviewed:false});
+    const submit = (event:FormEvent) => {
+        event.preventDefault();
+        const options = {preserveScroll:true,onSuccess:onClose};
+        if (term) {form.patch(`/glossary/${term.id}`,options);} else {form.post(`/lessons/${form.data.lesson_id}/glossary`,options);}
+    };
+    return <section className="glossary-editor" aria-labelledby="glossary-editor-heading"><div className="glossary-editor-header"><div><span className="eyebrow">TEACHER AUTHORING</span><h2 id="glossary-editor-heading">{term?'Edit glossary term':'Add a glossary term'}</h2></div><Button color="secondary" size="sm" onClick={onClose} isDisabled={form.processing}>Cancel</Button></div><p className="muted">Write clear explanations and review the language before sharing with learners.</p><form onSubmit={submit}>
+        <div className="glossary-form-grid"><label>Lesson<select required value={form.data.lesson_id} disabled={Boolean(term)} onChange={event=>form.setData('lesson_id',event.target.value)}>{lessons.map(lesson=><option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label><label>Term<input required maxLength={160} value={form.data.term} onChange={event=>form.setData('term',event.target.value)}/>{form.errors.term&&<span className="glossary-error">{form.errors.term}</span>}</label></div>
+        <div className="glossary-form-grid"><label>English explanation<textarea required rows={5} maxLength={4000} value={form.data.explanation_en} onChange={event=>form.setData('explanation_en',event.target.value)}/>{form.errors.explanation_en&&<span className="glossary-error">{form.errors.explanation_en}</span>}</label><label>Chichewa explanation <span className="glossary-optional">(optional)</span><textarea lang="ny" rows={5} maxLength={4000} value={form.data.explanation_ny} onChange={event=>form.setData('explanation_ny',event.target.value)}/>{form.errors.explanation_ny&&<span className="glossary-error">{form.errors.explanation_ny}</span>}</label></div>
+        <label>Pronunciation hint <span className="glossary-optional">(optional)</span><input maxLength={255} value={form.data.pronunciation_hint} onChange={event=>form.setData('pronunciation_hint',event.target.value)}/>{form.errors.pronunciation_hint&&<span className="glossary-error">{form.errors.pronunciation_hint}</span>}</label>
+        <label className="glossary-review-check"><input type="checkbox" checked={form.data.reviewed} onChange={event=>form.setData('reviewed',event.target.checked)}/><span><strong>I have reviewed these explanations for accuracy.</strong><small>Publish this version to learners. Unchecked changes remain a private draft, including edits to an already published term.</small></span></label>
+        <Button type="submit" isDisabled={form.processing||!form.data.lesson_id}>{form.processing?'Saving…':form.data.reviewed?'Publish reviewed term':'Save draft'}</Button>
+    </form></section>;
+}
+
+export default function Glossary({canManage,lessons,filters,terms}:Props) {
+    const [language,setLanguage] = useState<'en'|'ny'|'both'>('both');
+    const [search,setSearch] = useState(filters.search);
+    const [lessonId,setLessonId] = useState(String(filters.lesson_id ?? ''));
+    const [editor,setEditor] = useState<Term|null|undefined>(undefined);
+    const submitSearch = (event:FormEvent) => {event.preventDefault();router.get('/glossary',{search,lesson_id:lessonId||undefined},{preserveState:true,preserveScroll:true,replace:true});};
+    return <Shell><Head title="Learning glossary"/><div className="glossary-page"><PageHeading eyebrow="UNDERSTANDING, IN YOUR OWN WORDS" title="Learning glossary" description="Explore the language of your lessons, with explanations reviewed by your teachers." actions={canManage&&<Button iconLeading={Plus} isDisabled={!lessons.length} onClick={()=>setEditor(null)}>Add a term</Button>}/>
+        {editor!==undefined&&<TermEditor key={editor?.id ?? 'new'} term={editor} lessons={lessons} initialLesson={filters.lesson_id} onClose={()=>setEditor(undefined)}/>}
+        <div className="glossary-toolbar"><form onSubmit={submitSearch}><label><span className="glossary-label">Find a term</span><div className="glossary-search"><SearchLg aria-hidden="true"/><input type="search" maxLength={100} placeholder="Search lesson vocabulary" value={search} onChange={event=>setSearch(event.target.value)}/></div></label><label><span className="glossary-label">Lesson</span><select value={lessonId} onChange={event=>setLessonId(event.target.value)}><option value="">All your lessons</option>{lessons.map(lesson=><option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label><Button type="submit" color="secondary">Search</Button></form><fieldset className="glossary-language"><legend>Explanations</legend>{(['en','ny','both'] as const).map(value=><button key={value} type="button" aria-pressed={language===value} onClick={()=>setLanguage(value)}>{value==='en'?'English':value==='ny'?'Chichewa':'Both'}</button>)}</fieldset></div>
+        <div className="glossary-results-heading"><span>{terms.total} {terms.total===1?'term':'terms'}</span>{canManage&&<span>Drafts are visible only to your teaching team.</span>}</div>
+        {terms.data.length ? <div className="glossary-grid">{terms.data.map(term=><article key={term.id} className="glossary-card"><div className="glossary-card-meta"><span>{term.lesson_title}</span>{canManage&&<Badge color={term.reviewed?'success':'warning'}>{term.reviewed?'Reviewed':'Draft'}</Badge>}</div><h2>{term.term}</h2>{term.pronunciation_hint&&<p className="glossary-pronunciation">Pronunciation: {term.pronunciation_hint}</p>}<div className="glossary-explanations">{language!=='ny'&&<section lang="en" aria-label="English explanation"><h3>English</h3><p>{term.explanation_en}</p></section>}{language!=='en'&&<section lang="ny" aria-label="Chichewa explanation"><h3>Chichewa</h3>{term.explanation_ny?<p>{term.explanation_ny}</p>:<p className="glossary-missing" lang="en">A Chichewa explanation has not been added yet.</p>}</section>}</div><footer><Button href={`/lessons/${term.lesson_id}`} color="link-color" size="sm" iconLeading={BookOpen01}>Open lesson</Button>{canManage&&<Button color="secondary" size="sm" onClick={()=>{setEditor(term);window.scrollTo({top:0,behavior:'instant'});}}>Edit term</Button>}</footer></article>)}</div> : <Empty title={filters.search?'No matching terms':'A growing vocabulary'} description={canManage?'Add a term, write its explanations, and review it before publishing.':'Reviewed terms for your lessons will appear here. Try another search or lesson.'}/>}
+        {terms.last_page>1&&<nav className="glossary-pagination" aria-label="Glossary pages">{terms.prev_page_url?<Link href={terms.prev_page_url} preserveScroll>Previous</Link>:<span/>}<span>Page {terms.current_page} of {terms.last_page}</span>{terms.next_page_url?<Link href={terms.next_page_url} preserveScroll>Next</Link>:<span/>}</nav>}
+    </div></Shell>;
+}

@@ -5,12 +5,19 @@ namespace App\Services;
 use App\Models\ContentSetting;
 use App\Models\Lesson;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToReadFile;
 
 class LessonAssembler
 {
     public function source(Lesson $lesson): array
     {
-        return json_decode(Storage::disk('local')->get($lesson->directory.'/derived/lesson.json'), true, 128, JSON_THROW_ON_ERROR);
+        $path = $lesson->directory.'/derived/lesson.json';
+        $contents = Storage::disk('local')->get($path);
+        if (! is_string($contents)) {
+            throw UnableToReadFile::fromLocation($path);
+        }
+
+        return json_decode($contents, true, 128, JSON_THROW_ON_ERROR);
     }
 
     public function assemble(Lesson $lesson, bool $admin = false): array
@@ -110,7 +117,7 @@ class LessonAssembler
         }
 
         return ['id' => $lesson->id, 'manifest_id' => $lesson->manifest_id, 'version' => $lesson->version, 'title' => $lesson->title, 'syllabus' => $manifest['syllabus'],
-            'publication' => $manifest['publication'], 'overview' => $source['compatibility']['overview'], 'sections' => $sections, 'questions' => $questions, 'written' => $source['written'],
+            'publication' => app(PublicationReview::class)->isCurrent($lesson) ? ['status' => 'published', 'blockers' => []] : [...$manifest['publication'], 'status' => $manifest['publication']['status'] === 'published' ? 'preview-only' : $manifest['publication']['status']], 'overview' => $source['compatibility']['overview'], 'sections' => $sections, 'questions' => $questions, 'written' => $source['written'],
             'policies' => ['automatic' => $manifest['assessments']['automatic_policy'], 'written' => $manifest['assessments']['original_written_policy']],
             'logo_url' => isset($source['assets'][$logoKey]) ? '/lessons/'.$lesson->id.'/assets/'.$logoKey : null,
             'active_count' => count(array_filter($sections, fn ($s) => $available($s['state']))), 'assets' => $activeAssets,
@@ -121,6 +128,12 @@ class LessonAssembler
     {
         $source = $this->source($lesson);
 
-        return json_decode(Storage::disk('local')->get($lesson->directory.'/source/'.$source['manifest']['assessments']['protected_marking_reference']), true, 128, JSON_THROW_ON_ERROR);
+        $path = $lesson->directory.'/source/'.$source['manifest']['assessments']['protected_marking_reference'];
+        $contents = Storage::disk('local')->get($path);
+        if (! is_string($contents)) {
+            throw UnableToReadFile::fromLocation($path);
+        }
+
+        return json_decode($contents, true, 128, JSON_THROW_ON_ERROR);
     }
 }

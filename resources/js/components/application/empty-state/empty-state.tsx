@@ -106,11 +106,11 @@ const Footer = (props: ComponentPropsWithRef<"div">) => {
     return <footer {...props} className={cx("z-10 flex gap-3", props.className)} />;
 };
 
-const Title = (props: ComponentPropsWithRef<"h1">) => {
+const Title = (props: ComponentPropsWithRef<"h2">) => {
     const { size } = useContext(RootContext);
 
     return (
-        <h1
+        <h2
             {...props}
             className={cx(
                 "text-md font-semibold text-primary",

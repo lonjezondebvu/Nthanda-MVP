@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Lesson;
+use App\Models\SchoolClass;
+use App\Models\Subject;
+use App\Models\Unit;
 use App\Models\User;
 use App\Services\AssessmentMarker;
 use App\Services\CurriculumPackages;
@@ -93,6 +96,7 @@ class LessonWorkflowTest extends TestCase
         $lesson = $this->pilot();
         $admin = User::factory()->create(['role' => 'admin']);
         $learner = User::factory()->create(['role' => 'learner']);
+        $this->enroll($learner, $lesson);
         $data = app(LessonAssembler::class)->assemble($lesson);
         $s8 = $data['sections'][7]['id'];
         $this->actingAs($learner)->post('/lessons/'.$lesson->id.'/progress', ['section_id' => $s8, 'read' => true, 'confidence' => 2])->assertRedirect();
@@ -123,6 +127,7 @@ class LessonWorkflowTest extends TestCase
         $lesson = $this->pilot();
         $this->get('/admin/lessons')->assertRedirect('/login');
         $user = User::factory()->create(['role' => 'learner']);
+        $this->enroll($user, $lesson);
         $this->actingAs($user)->get('/admin/lessons')->assertForbidden();
         $this->post('/admin/import', [])->assertForbidden();
         $this->patch('/admin/lessons/'.$lesson->id.'/settings', [])->assertForbidden();
@@ -221,5 +226,14 @@ class LessonWorkflowTest extends TestCase
             $this->assertEquals(0, Lesson::count());
             $this->assertEmpty(Storage::disk('local')->allFiles('imports'));
         }
+    }
+
+    private function enroll(User $learner, Lesson $lesson): void
+    {
+        $class = SchoolClass::factory()->create();
+        $subject = Subject::factory()->create(['school_class_id' => $class->id, 'name' => 'Biology']);
+        $unit = Unit::factory()->create(['subject_id' => $subject->id, 'title' => 'Plants']);
+        $lesson->update(['unit_id' => $unit->id]);
+        $learner->forceFill(['school_class_id' => $class->id])->save();
     }
 }

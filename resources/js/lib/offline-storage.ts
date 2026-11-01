@@ -41,7 +41,7 @@ export type OfflineFile = {
     bytes: number;
     sha256?: string;
 };
-export async function cacheFiles(profileKey: string, files: OfflineFile[], includeMedia: boolean, onProgress: (done: number, total: number, message: string) => void): Promise<Array<OfflineFile & {
+export async function cacheFiles(profileKey: string, files: OfflineFile[], includeMedia: boolean | 'text' | 'audio' | 'full', onProgress: (done: number, total: number, message: string) => void): Promise<Array<OfflineFile & {
     localUrl: string;
 }>> {
     if (typeof caches === 'undefined')
@@ -53,7 +53,7 @@ export async function cacheFiles(profileKey: string, files: OfflineFile[], inclu
     catch {
         throw new Error('Could not open media storage. Check free space and browser storage settings.');
     }
-    const selected = files.filter(file => includeMedia || !/^(video|audio)\//i.test(file.mime)), result: Array<OfflineFile & {
+    const selected = files.filter(file => includeMedia === true || includeMedia === 'full' || (includeMedia === 'audio' ? !/^video\//i.test(file.mime) : !/^(video|audio)\//i.test(file.mime))), result: Array<OfflineFile & {
         localUrl: string;
     }> = [];
     for (const file of selected) {
